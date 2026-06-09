@@ -1,0 +1,57 @@
+name: Build release zip
+
+# Se déclenche sur un tag de version au format X.Y.Z (sans préfixe "v",
+# pour rester aligné avec le "Stable tag" du readme.txt), ou à la demande.
+on:
+  push:
+    tags:
+      - '[0-9]+.[0-9]+.[0-9]+'
+  workflow_dispatch:
+
+jobs:
+  build:
+    name: Build distributable zip
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup PHP 7.4
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '7.4'
+          tools: composer:v2
+
+      - name: Install runtime dependencies (bundles the ElyonPay SDK into vendor/)
+        run: composer install --no-dev --optimize-autoloader --no-interaction --prefer-dist
+
+      - name: Assemble the plugin folder (honouring .distignore)
+        run: |
+          SLUG=elyonpay-woocommerce
+          mkdir -p "build/${SLUG}"
+          rsync -a ./ "build/${SLUG}/" \
+            --exclude '.git' \
+            --exclude '.github' \
+            --exclude '.gitignore' \
+            --exclude '.distignore' \
+            --exclude 'node_modules' \
+            --exclude 'tests' \
+            --exclude '.wordpress-org' \
+            --exclude 'composer.json' \
+            --exclude 'composer.lock' \
+            --exclude 'README.md' \
+            --exclude 'build'
+          cd build && zip -r "${SLUG}.zip" "${SLUG}" >/dev/null
+          echo "Contenu du zip :" && unzip -l "${SLUG}.zip"
+
+      - name: Upload zip as a workflow artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: elyonpay-woocommerce
+          path: build/elyonpay-woocommerce.zip
+
+      - name: Attach zip to the GitHub Release (tag push only)
+        if: startsWith(github.ref, 'refs/tags/')
+        uses: softprops/action-gh-release@v2
+        with:
+          files: build/elyonpay-woocommerce.zip

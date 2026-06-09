@@ -1,0 +1,22 @@
+# Build / VCS tooling — jamais dans le zip distribué
+/.git
+/.github
+/.gitignore
+/.distignore
+/node_modules
+/tests
+
+# Assets de la fiche WordPress.org (gérés séparément, pas dans le plugin)
+/.wordpress-org
+
+# Composer : on garde vendor/, mais pas les manifestes ni le lock
+composer.json
+composer.lock
+
+# Doc développeur (WordPress.org utilise readme.txt, pas README.md)
+/README.md
+
+# Divers
+.DS_Store
+*.dist
+*.log

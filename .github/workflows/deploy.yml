@@ -1,0 +1,42 @@
+name: Deploy to WordPress.org
+
+# À utiliser UNE FOIS le plugin approuvé et le dépôt SVN attribué.
+# Nécessite les secrets de dépôt : SVN_USERNAME et SVN_PASSWORD.
+# Tag au format X.Y.Z (sans "v") : il devient le tag SVN et doit correspondre
+# au "Stable tag" du readme.txt.
+on:
+  push:
+    tags:
+      - '[0-9]+.[0-9]+.[0-9]+'
+
+jobs:
+  deploy:
+    name: Build and deploy to WordPress.org
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup PHP 7.4
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '7.4'
+          tools: composer:v2
+
+      - name: Install runtime dependencies (bundles the ElyonPay SDK into vendor/)
+        run: composer install --no-dev --optimize-autoloader --no-interaction --prefer-dist
+
+      - name: Deploy to WordPress.org SVN
+        id: deploy
+        uses: 10up/action-wordpress-plugin-deploy@stable
+        with:
+          generate-zip: true
+        env:
+          SVN_USERNAME: ${{ secrets.SVN_USERNAME }}
+          SVN_PASSWORD: ${{ secrets.SVN_PASSWORD }}
+          SLUG: elyonpay-woocommerce
+
+      - name: Attach the generated zip to the GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: ${{ steps.deploy.outputs.zip-path }}

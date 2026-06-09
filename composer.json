@@ -1,0 +1,22 @@
+{
+    "name": "elyonpay/woocommerce",
+    "description": "ElyonPay payment gateway for WooCommerce, built on the ElyonPay PHP SDK.",
+    "type": "wordpress-plugin",
+    "license": "MIT",
+    "require": {
+        "php": ">=7.4",
+        "elyonpay/php-sdk": "^1.0"
+    },
+    "repositories": [
+        {
+            "type": "vcs",
+            "url": "https://github.com/ElyonPay-org/php-sdk"
+        }
+    ],
+    "config": {
+        "optimize-autoloader": true,
+        "allow-plugins": {
+            "composer/installers": true
+        }
+    }
+}
