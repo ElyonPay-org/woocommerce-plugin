@@ -15,8 +15,6 @@
     ],
     "config": {
         "optimize-autoloader": true,
-        "allow-plugins": {
-            "composer/installers": true
-        }
+        "allow-plugins": { "composer/installers": true }
     }
 }

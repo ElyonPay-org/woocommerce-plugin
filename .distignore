@@ -3,6 +3,7 @@
 /.github
 /.gitignore
 /.distignore
+/.claude
 /node_modules
 /tests
 

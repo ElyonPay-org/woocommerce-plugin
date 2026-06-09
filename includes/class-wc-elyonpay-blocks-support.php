@@ -48,7 +48,7 @@ final class WC_ElyonPay_Blocks_Support extends AbstractPaymentMethodType
         );
 
         if (function_exists('wp_set_script_translations')) {
-            wp_set_script_translations('wc-elyonpay-payments-blocks', 'elyonpay-woocommerce', ELYONPAY_WC_PLUGIN_PATH . 'languages');
+            wp_set_script_translations('wc-elyonpay-payments-blocks', 'elyonpay-for-woocommerce', ELYONPAY_WC_PLUGIN_PATH . 'languages');
         }
 
         return array('wc-elyonpay-payments-blocks');
@@ -56,12 +56,21 @@ final class WC_ElyonPay_Blocks_Support extends AbstractPaymentMethodType
 
     public function get_payment_method_data()
     {
+        $base = ELYONPAY_WC_PLUGIN_URL . 'assets/images/payment/';
+
         return array(
-            'title'       => $this->get_setting('title'),
-            'description' => $this->get_setting('description'),
-            'supports'    => $this->gateway ? array_filter($this->gateway->supports, array($this->gateway, 'supports')) : array('products'),
-            'icon'        => $this->gateway ? $this->gateway->icon : '',
-            'testmode'    => $this->gateway ? (bool) $this->gateway->testmode : false,
+            'title'         => $this->get_setting('title'),
+            'description'   => $this->get_setting('description'),
+            'supports'      => $this->gateway ? array_filter($this->gateway->supports, array($this->gateway, 'supports')) : array('products'),
+            'testmode'      => $this->gateway ? (bool) $this->gateway->testmode : false,
+            'payment_icons' => array(
+                array('src' => $base . 'logo_mtn.png', 'alt' => 'MTN MoMo'),
+                array('src' => $base . 'orange-money.png', 'alt' => 'Orange Money'),
+                array('src' => $base . 'wave-money.png', 'alt' => 'Wave'),
+                array('src' => $base . 'moov.png', 'alt' => 'Moov Money'),
+                array('src' => $base . 'airtel.jpg', 'alt' => 'Airtel Money'),
+                array('src' => $base . 'visa.png', 'alt' => 'Visa'),
+            ),
         );
     }
 

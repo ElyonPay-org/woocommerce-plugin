@@ -5,7 +5,7 @@ Accept **Mobile Money** (MTN, Orange, Wave, Moov, Airtel) and **bank cards**
 
 [![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 
-Built on the [ElyonPay PHP SDK](https://github.com/elyonpay/elyonpay-php-sdk).
+Built on the [ElyonPay PHP SDK](https://github.com/ElyonPay-org/php-sdk).
 Uses the payment-link flow with **server-side status verification** (no webhook),
 and supports both the **classic** and **block-based** checkout.
 
@@ -22,7 +22,7 @@ The repository does not ship `vendor/`. Because the SDK is not on Packagist yet,
 
 ```bash
 composer install --no-dev --optimize-autoloader
-zip -r elyonpay-woocommerce.zip . -x ".git/*" ".github/*"
+zip -r elyonpay-for-woocommerce.zip . -x ".git/*" ".github/*"
 ```
 
 Then in WordPress: **Plugins -> Add New -> Upload Plugin**, upload the zip, activate.

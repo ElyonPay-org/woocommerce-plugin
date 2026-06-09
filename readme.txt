@@ -1,162 +1,159 @@
 === ElyonPay for WooCommerce ===
 Contributors: elyonpay
-Tags: mobile money, paiement, woocommerce, mtn momo, orange money
+Tags: mobile money, payment gateway, mtn momo, orange money, africa
 Requires at least: 5.6
-Tested up to: 6.5
+Tested up to: 7.0
 Requires PHP: 7.4
 Stable tag: 1.2.0
 License: MIT
 License URI: https://opensource.org/licenses/MIT
 
-Acceptez le Mobile Money (MTN, Orange, Wave, Moov, Airtel) et les cartes bancaires sur votre boutique WooCommerce, partout en Afrique.
+Accept Mobile Money (MTN, Orange, Wave, Moov, Airtel) and bank cards on your WooCommerce store, across Africa.
 
 == Description ==
 
-**ElyonPay for WooCommerce** connecte votre boutique à la passerelle de paiement
-**ElyonPay** et vous permet d'encaisser en quelques clics au Cameroun, en Afrique
-de l'Ouest et Centrale, et au-delà — via **Mobile Money** comme par **carte
-bancaire**.
+**ElyonPay for WooCommerce** connects your store to the **ElyonPay** payment
+gateway so you can collect payments in a few clicks across Cameroon, West and
+Central Africa, and beyond — through **Mobile Money** as well as **bank cards**.
 
-Vos clients paient sur une page sécurisée hébergée par ElyonPay (USSD pour le
-Mobile Money, 3D Secure pour les cartes), puis reviennent sur votre boutique.
-Le statut de chaque commande n'est validé qu'après une **vérification côté
-serveur** : aucun paiement n'est marqué comme réglé sur la seule foi d'une
-redirection.
+Your customers pay on a secure page hosted by ElyonPay (USSD for Mobile Money,
+3D Secure for cards), then return to your store. Each order status is confirmed
+only after a **server-side verification**: no payment is ever marked as paid on
+the basis of a redirect alone.
 
-= Moyens de paiement pris en charge =
+= Supported payment methods =
 
-* **Mobile Money** : MTN MoMo, Orange Money, Wave, Moov Money, Airtel Money
-* **Cartes bancaires** : Visa et Mastercard (3D Secure)
+* **Mobile Money**: MTN MoMo, Orange Money, Wave, Moov Money, Airtel Money
+* **Bank cards**: Visa and Mastercard (3D Secure)
 
-= Pourquoi choisir ElyonPay =
+= Why ElyonPay =
 
-* **Pensé pour l'Afrique** — terminologie, opérateurs et devises locales
-  (XAF, XOF, EUR, USD, GBP, NGN, KES, CDF).
-* **Checkout classique et par blocs** — compatible avec l'éditeur de blocs
-  WooCommerce comme avec le tunnel de commande historique.
-* **Paiement fiabilisé** — vérification du statut côté serveur après chaque
-  transaction, et re-contrôle automatique des paiements en attente.
-* **Sans données sensibles chez vous** — les coordonnées de carte sont saisies
-  sur la page sécurisée d'ElyonPay, jamais sur votre boutique.
-* **Compatible HPOS** — prêt pour le stockage haute performance des commandes
-  de WooCommerce.
-* **Mode test intégré** — un environnement sandbox complet pour tout valider
-  avant de passer en production.
+* **Built for Africa** — local operators and currencies (XAF, XOF, EUR, USD,
+  GBP, NGN, KES, CDF).
+* **Classic and block-based checkout** — works with both the WooCommerce block
+  checkout and the legacy checkout.
+* **Reliable payments** — server-side status verification after every
+  transaction, plus an automatic re-check of pending payments.
+* **No sensitive data on your site** — card details are entered on ElyonPay's
+  secure page, never on your store.
+* **HPOS compatible** — ready for WooCommerce High-Performance Order Storage.
+* **Built-in test mode** — a full sandbox environment to validate everything
+  before going live.
 
-= Comment ça marche =
+= How it works =
 
-1. Le client finalise son panier et choisit ElyonPay.
-2. Il est redirigé vers la page de paiement ElyonPay (Mobile Money ou carte).
-3. Une fois le paiement effectué, il revient sur votre boutique.
-4. Le plugin interroge l'API ElyonPay et met à jour la commande selon le
-   statut réel : payée, échouée, ou en attente.
+1. The customer completes the cart and selects ElyonPay.
+2. They are redirected to the ElyonPay payment page (Mobile Money or card).
+3. After paying, they are redirected back to your store.
+4. The plugin queries the ElyonPay API and updates the order according to the
+   real status: paid, failed, or pending.
 
-= Compte requis =
+= Account required =
 
-Ce plugin nécessite un compte marchand ElyonPay. La création de compte, la
-validation (KYB) et l'obtention des identifiants se font sur
-[elyonpay.com](https://elyonpay.com). La documentation technique de l'API est
-disponible sur [docs.elyonpay.com](https://docs.elyonpay.com).
+This plugin requires an ElyonPay merchant account. Account creation, onboarding
+(KYB) and credentials are handled on [elyonpay.com](https://elyonpay.com). The
+technical API documentation is available at
+[docs.elyonpay.com](https://docs.elyonpay.com).
+
+This plugin connects to a third-party service (the ElyonPay API) to create
+payment links and verify transaction statuses. By using it you agree to
+ElyonPay's terms of service and privacy policy, available on elyonpay.com.
 
 == Installation ==
 
-= Installation simple =
+= Simple installation =
 
-1. Téléchargez l'archive `elyonpay-woocommerce.zip`.
-2. Dans l'administration WordPress : **Extensions → Ajouter → Téléverser une
-   extension**, puis sélectionnez l'archive et cliquez sur **Installer
-   maintenant**.
-3. Activez l'extension.
-4. Rendez-vous dans **WooCommerce → Réglages → Paiements**, activez
-   **ElyonPay** puis cliquez sur **Gérer**.
-5. Choisissez l'environnement (test ou production), saisissez vos identifiants
-   marchand ElyonPay, puis enregistrez.
+1. Download the `elyonpay-for-woocommerce.zip` archive.
+2. In the WordPress admin: **Plugins -> Add New -> Upload Plugin**, select the
+   archive and click **Install Now**.
+3. Activate the plugin.
+4. Go to **WooCommerce -> Settings -> Payments**, enable **ElyonPay**, then
+   click **Manage**.
+5. Choose the environment (test or production), enter your ElyonPay merchant
+   credentials, then save.
 
 = Configuration =
 
-* **Mode test** : utilise l'environnement sandbox d'ElyonPay (aucune
-  transaction réelle). Décochez-le pour encaisser en production.
-* **Identifiants** : votre e-mail et votre mot de passe marchand ElyonPay
-  (champs distincts pour le test et la production).
-* **Rôle** : `ROLE_MERCHANT_ADMIN` en production. Le compte de test documenté
-  par ElyonPay utilise `ROLE_CUSTOMER` ; si l'authentification sandbox échoue,
-  basculez le rôle sur `ROLE_CUSTOMER`.
+* **Test mode**: uses the ElyonPay sandbox environment (no real transactions).
+  Uncheck it to collect live payments.
+* **Credentials**: your ElyonPay merchant email and password (separate fields
+  for test and production).
+* **Role**: `ROLE_MERCHANT_ADMIN` in production. The test account documented by
+  ElyonPay uses `ROLE_CUSTOMER`; if sandbox authentication fails, switch the
+  role to `ROLE_CUSTOMER`.
 
-= Prérequis =
+= Requirements =
 
-* WordPress 5.6 ou supérieur
-* WooCommerce 4.0 ou supérieur
-* PHP 7.4 ou supérieur avec l'extension cURL
-* Un compte marchand ElyonPay
+* WordPress 5.6 or higher
+* WooCommerce 4.0 or higher
+* PHP 7.4 or higher with the cURL extension
+* An ElyonPay merchant account
 
 == Frequently Asked Questions ==
 
-= Le plugin est-il gratuit ? =
+= Is the plugin free? =
 
-Oui, l'extension est gratuite et open source (licence MIT). Les frais éventuels
-liés aux transactions relèvent de votre contrat marchand ElyonPay.
+Yes, the plugin is free and open source (MIT license). Any transaction fees are
+governed by your ElyonPay merchant agreement.
 
-= Dois-je avoir un compte ElyonPay ? =
+= Do I need an ElyonPay account? =
 
-Oui. Vous devez disposer d'un compte marchand ElyonPay validé pour obtenir vos
-identifiants. Rendez-vous sur elyonpay.com pour créer le vôtre.
+Yes. You need an approved ElyonPay merchant account to obtain your credentials.
+Visit elyonpay.com to create one.
 
-= Quels pays et quelles devises sont pris en charge ? =
+= Which countries and currencies are supported? =
 
-ElyonPay cible le Cameroun, l'Afrique de l'Ouest et Centrale, et prend en charge
-les devises XAF, XOF, EUR, USD, GBP, NGN, KES et CDF. La disponibilité des
-opérateurs Mobile Money dépend du pays.
+ElyonPay targets Cameroon, West and Central Africa, and supports the XAF, XOF,
+EUR, USD, GBP, NGN, KES and CDF currencies. Mobile Money operator availability
+depends on the country.
 
-= Le plugin fonctionne-t-il avec le paiement par blocs (Checkout Blocks) ? =
+= Does the plugin work with the block checkout? =
 
-Oui. ElyonPay s'affiche aussi bien dans le tunnel de commande classique que dans
-le nouveau paiement par blocs de WooCommerce.
+Yes. ElyonPay appears in both the classic checkout and the newer WooCommerce
+block checkout.
 
-= Un numéro de téléphone est-il nécessaire ? =
+= Is a phone number required? =
 
-Oui pour le Mobile Money. Le plugin met automatiquement le numéro au format
-international à partir du pays de facturation de la commande.
+Yes for Mobile Money. The plugin automatically formats the number to
+international format based on the order's billing country.
 
-= Comment les paiements sont-ils sécurisés ? =
+= How are payments secured? =
 
-Les coordonnées de paiement sont saisies sur la page sécurisée d'ElyonPay, pas
-sur votre boutique. Après la redirection, le plugin confirme le paiement en
-interrogeant directement l'API ElyonPay : une commande n'est validée que si le
-paiement est réellement confirmé côté serveur.
+Payment details are entered on ElyonPay's secure page, not on your store. After
+the redirect, the plugin confirms the payment by querying the ElyonPay API: an
+order is validated only if the payment is actually confirmed server-side.
 
-= Que se passe-t-il si le client ferme la page avant la fin ? =
+= What happens if the customer closes the page before finishing? =
 
-La commande reste « en attente ». Le plugin replanifie automatiquement une
-vérification du statut, et vous pouvez aussi le contrôler depuis la fiche de
-commande.
+The order stays "pending". The plugin automatically reschedules a status check,
+and you can also check it from the order screen.
 
-= Mes identifiants sont-ils en sécurité ? =
+= Are my credentials safe? =
 
-Ils sont enregistrés dans les réglages de la passerelle et utilisés uniquement
-côté serveur pour obtenir un jeton d'accès (JWT), mis en cache temporairement.
-Ils ne sont jamais exposés dans le navigateur.
+They are stored in the gateway settings and used only server-side to obtain an
+access token (JWT), cached temporarily. They are never exposed in the browser.
 
 == Screenshots ==
 
-1. La page de réglages ElyonPay dans WooCommerce (environnement, identifiants, rôle).
-2. ElyonPay proposé comme moyen de paiement dans le tunnel de commande.
-3. Le moyen de paiement ElyonPay dans le paiement par blocs, avec le bandeau « mode test ».
-4. La page de paiement sécurisée ElyonPay (Mobile Money et carte).
-5. Le tableau récapitulatif des statuts de transaction côté administration.
+1. The ElyonPay settings page in WooCommerce (environment, credentials, role).
+2. ElyonPay offered as a payment method in the classic checkout.
+3. The ElyonPay payment method in the block checkout, with the test-mode notice.
+4. The secure ElyonPay payment page (Mobile Money and card).
+5. The transaction status reference table in the admin.
 
 == Changelog ==
 
 = 1.2.0 =
-* Reconstruction sur le SDK PHP officiel ElyonPay (logique de statuts mutualisée).
-* Correction de la mise au format international du numéro de téléphone (indicatif pays).
-* La réduction de stock et le vidage du panier n'interviennent plus qu'après confirmation du paiement.
-* Vérification de la clé de commande au retour, compatibilité HPOS, compatibilité PHP 7.4.
-* Paiement par blocs : décodage des entités HTML (titres accentués), version d'asset alignée.
+* Rebuilt on the official ElyonPay PHP SDK (shared status logic).
+* Fixed international phone-number formatting (country dialing code).
+* Stock reduction and cart emptying now happen only after the payment is confirmed.
+* Order-key verification on return, HPOS compatibility, PHP 7.4 compatibility.
+* Block checkout: HTML entity decoding for accented titles; asset version aligned.
 
 = 1.1.1 =
-* Version autonome précédente (appels API directs).
+* Previous standalone release (direct API calls).
 
 == Upgrade Notice ==
 
 = 1.2.0 =
-Mise à jour recommandée : corrige la validation des paiements (statuts) et la mise au format des numéros de téléphone. Pensez à exécuter « composer install » lors de la construction de l'archive.
+Recommended update: fixes payment validation (statuses) and phone-number formatting. Remember to run "composer install" when building the archive.

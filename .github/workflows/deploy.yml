@@ -34,7 +34,7 @@ jobs:
         env:
           SVN_USERNAME: ${{ secrets.SVN_USERNAME }}
           SVN_PASSWORD: ${{ secrets.SVN_PASSWORD }}
-          SLUG: elyonpay-woocommerce
+          SLUG: elyonpay-for-woocommerce
 
       - name: Attach the generated zip to the GitHub Release
         uses: softprops/action-gh-release@v2

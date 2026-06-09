@@ -3,6 +3,7 @@ composer.lock
 *.log
 .idea/
 .vscode/
+.claude/
 node_modules/
 .DS_Store
 *.zip

@@ -24,10 +24,9 @@ class WC_ElyonPay_Gateway extends WC_Payment_Gateway
     public function __construct()
     {
         $this->id                 = 'elyonpay';
-        $this->icon               = ELYONPAY_WC_PLUGIN_URL . 'assets/elyonpay-logo.png';
         $this->has_fields         = false;
-        $this->method_title       = __('ElyonPay', 'elyonpay-woocommerce');
-        $this->method_description = __('Acceptez les paiements via ElyonPay (Mobile Money, cartes bancaires).', 'elyonpay-woocommerce');
+        $this->method_title       = __('ElyonPay', 'elyonpay-for-woocommerce');
+        $this->method_description = __('Acceptez les paiements via ElyonPay (Mobile Money, cartes bancaires).', 'elyonpay-for-woocommerce');
         $this->supports           = array('products');
 
         $this->init_form_fields();
@@ -56,60 +55,82 @@ class WC_ElyonPay_Gateway extends WC_Payment_Gateway
         return parent::is_available();
     }
 
+    public function get_icon()
+    {
+        $icons = array(
+            array('logo_mtn.png', 'MTN MoMo'),
+            array('orange-money.png', 'Orange Money'),
+            array('wave-money.png', 'Wave'),
+            array('moov.png', 'Moov Money'),
+            array('airtel.jpg', 'Airtel Money'),
+            array('visa.png', 'Visa'),
+        );
+
+        $base = ELYONPAY_WC_PLUGIN_URL . 'assets/images/payment/';
+        $html = '';
+        foreach ($icons as $icon) {
+            $html .= '<img src="' . esc_url($base . $icon[0]) . '"'
+                . ' alt="' . esc_attr($icon[1]) . '"'
+                . ' style="height:24px;width:auto;border-radius:3px;object-fit:contain;margin-left:4px;" />';
+        }
+
+        return $html;
+    }
+
     public function init_form_fields()
     {
         $this->form_fields = array(
             'enabled' => array(
-                'title'   => __('Activer/Désactiver', 'elyonpay-woocommerce'),
+                'title'   => __('Activer/Désactiver', 'elyonpay-for-woocommerce'),
                 'type'    => 'checkbox',
-                'label'   => __('Activer ElyonPay', 'elyonpay-woocommerce'),
+                'label'   => __('Activer ElyonPay', 'elyonpay-for-woocommerce'),
                 'default' => 'no',
             ),
             'title' => array(
-                'title'    => __('Titre', 'elyonpay-woocommerce'),
+                'title'    => __('Titre', 'elyonpay-for-woocommerce'),
                 'type'     => 'text',
-                'default'  => __('Mobile Money / Carte (ElyonPay)', 'elyonpay-woocommerce'),
+                'default'  => __('Mobile Money / Carte (ElyonPay)', 'elyonpay-for-woocommerce'),
                 'desc_tip' => true,
             ),
             'description' => array(
-                'title'   => __('Description', 'elyonpay-woocommerce'),
+                'title'   => __('Description', 'elyonpay-for-woocommerce'),
                 'type'    => 'textarea',
-                'default' => __('Payez avec MTN, Orange, Wave, Moov, Airtel ou votre carte bancaire.', 'elyonpay-woocommerce'),
+                'default' => __('Payez avec MTN, Orange, Wave, Moov, Airtel ou votre carte bancaire.', 'elyonpay-for-woocommerce'),
             ),
             'testmode' => array(
-                'title'       => __('Mode test', 'elyonpay-woocommerce'),
+                'title'       => __('Mode test', 'elyonpay-for-woocommerce'),
                 'type'        => 'checkbox',
-                'label'       => __('Activer le mode test (sandbox)', 'elyonpay-woocommerce'),
+                'label'       => __('Activer le mode test (sandbox)', 'elyonpay-for-woocommerce'),
                 'default'     => 'yes',
-                'description' => __('Sandbox : api.elyonpay.net — aucune transaction réelle.', 'elyonpay-woocommerce'),
+                'description' => __('Sandbox : api.elyonpay.net — aucune transaction réelle.', 'elyonpay-for-woocommerce'),
             ),
             'role' => array(
-                'title'       => __('Rôle', 'elyonpay-woocommerce'),
+                'title'       => __('Rôle', 'elyonpay-for-woocommerce'),
                 'type'        => 'text',
                 'default'     => 'ROLE_MERCHANT_ADMIN',
-                'description' => __('Production : ROLE_MERCHANT_ADMIN. Le compte de test documenté utilise ROLE_CUSTOMER — si l\'auth sandbox échoue, essayez ROLE_CUSTOMER.', 'elyonpay-woocommerce'),
+                'description' => __('Production : ROLE_MERCHANT_ADMIN. Le compte de test documenté utilise ROLE_CUSTOMER — si l\'auth sandbox échoue, essayez ROLE_CUSTOMER.', 'elyonpay-for-woocommerce'),
                 'desc_tip'    => true,
             ),
             'test_username' => array(
-                'title'   => __('Identifiant (test)', 'elyonpay-woocommerce'),
+                'title'   => __('Identifiant (test)', 'elyonpay-for-woocommerce'),
                 'type'    => 'text',
                 'default' => 'test@test.com',
             ),
             'test_password' => array(
-                'title'   => __('Mot de passe (test)', 'elyonpay-woocommerce'),
+                'title'   => __('Mot de passe (test)', 'elyonpay-for-woocommerce'),
                 'type'    => 'password',
                 'default' => 'TestPassword1',
             ),
             'live_username' => array(
-                'title' => __('Identifiant marchand (production)', 'elyonpay-woocommerce'),
+                'title' => __('Identifiant marchand (production)', 'elyonpay-for-woocommerce'),
                 'type'  => 'email',
             ),
             'live_password' => array(
-                'title' => __('Mot de passe marchand (production)', 'elyonpay-woocommerce'),
+                'title' => __('Mot de passe marchand (production)', 'elyonpay-for-woocommerce'),
                 'type'  => 'password',
             ),
             'user_lang' => array(
-                'title'   => __('Langue de l\'interface de paiement', 'elyonpay-woocommerce'),
+                'title'   => __('Langue de l\'interface de paiement', 'elyonpay-for-woocommerce'),
                 'type'    => 'select',
                 'default' => 'fr',
                 'options' => array('fr' => 'Français', 'en' => 'English'),
@@ -186,18 +207,17 @@ class WC_ElyonPay_Gateway extends WC_Payment_Gateway
 
         $phone = $this->normalize_msisdn($order->get_billing_phone(), $order->get_billing_country());
         if ($phone === '') {
-            wc_add_notice(__('Un numéro de téléphone valide est requis pour le paiement.', 'elyonpay-woocommerce'), 'error');
+            wc_add_notice(__('Un numéro de téléphone valide est requis pour le paiement.', 'elyonpay-for-woocommerce'), 'error');
             return array('result' => 'failure');
         }
 
-        $return_base = add_query_arg(
-            array('order_id' => $order->get_id(), 'order_key' => $order->get_order_key()),
-            WC()->api_request_url('elyonpay_success')
+        $return_args = array(
+            'order_id'  => $order->get_id(),
+            'order_key' => $order->get_order_key(),
+            '_wpnonce'  => wp_create_nonce('elyonpay_return'),
         );
-        $error_url = add_query_arg(
-            array('order_id' => $order->get_id(), 'order_key' => $order->get_order_key()),
-            WC()->api_request_url('elyonpay_error')
-        );
+        $return_base = add_query_arg($return_args, WC()->api_request_url('elyonpay_success'));
+        $error_url   = add_query_arg($return_args, WC()->api_request_url('elyonpay_error'));
 
         $client = $this->client();
         try {
@@ -210,7 +230,7 @@ class WC_ElyonPay_Gateway extends WC_Payment_Gateway
             ));
         } catch (ElyonPayException $e) {
             $order->add_order_note('ElyonPay: ' . $e->getMessage());
-            wc_add_notice(__('Erreur lors de l\'initialisation du paiement. Veuillez réessayer.', 'elyonpay-woocommerce'), 'error');
+            wc_add_notice(__('Erreur lors de l\'initialisation du paiement. Veuillez réessayer.', 'elyonpay-for-woocommerce'), 'error');
             return array('result' => 'failure');
         }
         $this->cache_token($client);
@@ -220,7 +240,7 @@ class WC_ElyonPay_Gateway extends WC_Payment_Gateway
         }
         // Do NOT reduce stock or empty the cart here — only once the payment is
         // confirmed server-side (WooCommerce reduces stock on payment_complete).
-        $order->update_status('pending', __('En attente du paiement ElyonPay.', 'elyonpay-woocommerce'));
+        $order->update_status('pending', __('En attente du paiement ElyonPay.', 'elyonpay-for-woocommerce'));
         $order->save();
 
         return array('result' => 'success', 'redirect' => $link['url']);
@@ -242,7 +262,8 @@ class WC_ElyonPay_Gateway extends WC_Payment_Gateway
         try {
             $tx = $client->getTransaction($reference);
         } catch (ElyonPayException $e) {
-            $order->add_order_note(sprintf(__('Erreur de vérification ElyonPay : %s', 'elyonpay-woocommerce'), $e->getMessage()));
+            /* translators: %s is the error message returned by the ElyonPay API. */
+            $order->add_order_note(sprintf(__('Erreur de vérification ElyonPay : %s', 'elyonpay-for-woocommerce'), $e->getMessage()));
             return 'pending';
         }
         $this->cache_token($client);
@@ -252,19 +273,22 @@ class WC_ElyonPay_Gateway extends WC_Payment_Gateway
         if (TransactionStatus::isPaid($state)) {
             if (!$order->is_paid()) {
                 $order->payment_complete($reference);
-                $order->add_order_note(sprintf(__('Paiement ElyonPay confirmé (%s).', 'elyonpay-woocommerce'), $state));
+                /* translators: %s is the ElyonPay transaction status (e.g. ACCEPTED, DELIVERED). */
+                $order->add_order_note(sprintf(__('Paiement ElyonPay confirmé (%s).', 'elyonpay-for-woocommerce'), $state));
             }
             return 'paid';
         }
 
         if (TransactionStatus::isFailed($state)) {
             if (!in_array($order->get_status(), array('processing', 'completed'), true)) {
-                $order->update_status('failed', sprintf(__('Paiement ElyonPay échoué (%s).', 'elyonpay-woocommerce'), $state));
+                /* translators: %s is the ElyonPay transaction status (e.g. REJECTED, DECLINED). */
+                $order->update_status('failed', sprintf(__('Paiement ElyonPay échoué (%s).', 'elyonpay-for-woocommerce'), $state));
             }
             return 'failed';
         }
 
-        $order->update_status('on-hold', sprintf(__('Paiement ElyonPay en attente (%s).', 'elyonpay-woocommerce'), $state));
+        /* translators: %s is the ElyonPay transaction status (e.g. PENDING). */
+        $order->update_status('on-hold', sprintf(__('Paiement ElyonPay en attente (%s).', 'elyonpay-for-woocommerce'), $state));
         return 'pending';
     }
 
@@ -300,7 +324,7 @@ class WC_ElyonPay_Gateway extends WC_Payment_Gateway
         echo '<p>' . esc_html($this->get_method_description()) . '</p>';
         if ($this->testmode) {
             echo '<div class="notice notice-info inline"><p>'
-                . esc_html__('Mode TEST actif (api.elyonpay.net). Compte de test : test@test.com / TestPassword1.', 'elyonpay-woocommerce')
+                . esc_html__('Mode TEST actif (api.elyonpay.net). Compte de test : test@test.com / TestPassword1.', 'elyonpay-for-woocommerce')
                 . '</p></div>';
         }
         echo '<table class="form-table">';
@@ -308,16 +332,16 @@ class WC_ElyonPay_Gateway extends WC_Payment_Gateway
         echo '</table>';
 
         $states = array(
-            array('CREATED', __('Transaction créée, pas encore démarrée', 'elyonpay-woocommerce')),
-            array('PENDING', __('En cours de traitement', 'elyonpay-woocommerce')),
-            array('WAITING_FOR_PAYMENT', __('En attente du paiement du client', 'elyonpay-woocommerce')),
-            array('ACCEPTED', __('Approuvée et validée (payée)', 'elyonpay-woocommerce')),
-            array('DELIVERED', __('Fonds transférés (payée)', 'elyonpay-woocommerce')),
-            array('REJECTED', __('Refusée définitivement (échec)', 'elyonpay-woocommerce')),
-            array('DECLINED', __('Refusée par l\'institution financière (échec)', 'elyonpay-woocommerce')),
-            array('CANCELLED', __('Annulée (échec)', 'elyonpay-woocommerce')),
+            array('CREATED', __('Transaction créée, pas encore démarrée', 'elyonpay-for-woocommerce')),
+            array('PENDING', __('En cours de traitement', 'elyonpay-for-woocommerce')),
+            array('WAITING_FOR_PAYMENT', __('En attente du paiement du client', 'elyonpay-for-woocommerce')),
+            array('ACCEPTED', __('Approuvée et validée (payée)', 'elyonpay-for-woocommerce')),
+            array('DELIVERED', __('Fonds transférés (payée)', 'elyonpay-for-woocommerce')),
+            array('REJECTED', __('Refusée définitivement (échec)', 'elyonpay-for-woocommerce')),
+            array('DECLINED', __('Refusée par l\'institution financière (échec)', 'elyonpay-for-woocommerce')),
+            array('CANCELLED', __('Annulée (échec)', 'elyonpay-for-woocommerce')),
         );
-        echo '<h3>' . esc_html__('États des transactions ElyonPay', 'elyonpay-woocommerce') . '</h3>';
+        echo '<h3>' . esc_html__('États des transactions ElyonPay', 'elyonpay-for-woocommerce') . '</h3>';
         echo '<table class="widefat"><thead><tr><th>Code</th><th>Description</th></tr></thead><tbody>';
         foreach ($states as $row) {
             echo '<tr><td><code>' . esc_html($row[0]) . '</code></td><td>' . esc_html($row[1]) . '</td></tr>';
