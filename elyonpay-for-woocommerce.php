@@ -1,7 +1,7 @@
 <?php
 /**
  * Plugin Name:       ElyonPay for WooCommerce
- * Plugin URI:        https://github.com/elyonpay/woocommerce-plugin
+ * Plugin URI:        https://github.com/ElyonPay-org/woocommerce-plugin
  * Description:       Passerelle de paiement ElyonPay pour WooCommerce (Mobile Money, cartes bancaires). Construit sur le SDK PHP officiel.
  * Version:           1.2.0
  * Author:            ElyonPay
@@ -11,6 +11,7 @@
  * Requires at least: 5.6
  * Tested up to:      7.0
  * Requires PHP:      7.4
+ * Requires Plugins:  woocommerce
  * WC requires at least: 4.0
  * WC tested up to:   9.0
  *
@@ -64,7 +65,7 @@ function elyonpay_wc_init()
     require_once ELYONPAY_WC_PLUGIN_PATH . 'includes/class-elyonpay-wc-gateway.php';
 
     add_filter('woocommerce_payment_gateways', static function ($gateways) {
-        $gateways[] = 'WC_ElyonPay_Gateway';
+        $gateways[] = 'ElyonPay_WC_Gateway';
         return $gateways;
     });
 
@@ -95,7 +96,7 @@ function elyonpay_handle_payment_return()
         exit;
     }
 
-    $gateway = new WC_ElyonPay_Gateway();
+    $gateway = new ElyonPay_WC_Gateway();
     $outcome = $gateway->verify_transaction_status($order);
 
     if ($outcome === 'paid') {
@@ -124,12 +125,12 @@ function elyonpay_handle_payment_return()
  * Cron re-check for pending payments.
  */
 add_action('elyonpay_check_transaction_status', function ($order_id) {
-    if (!class_exists('WC_ElyonPay_Gateway')) {
+    if (!class_exists('ElyonPay_WC_Gateway')) {
         return;
     }
     $order = wc_get_order($order_id);
     if ($order && $order->get_payment_method() === 'elyonpay') {
-        (new WC_ElyonPay_Gateway())->verify_transaction_status($order);
+        (new ElyonPay_WC_Gateway())->verify_transaction_status($order);
     }
 });
 
@@ -138,9 +139,9 @@ add_action('elyonpay_check_transaction_status', function ($order_id) {
  */
 add_action('woocommerce_blocks_loaded', function () {
     if (class_exists('Automattic\\WooCommerce\\Blocks\\Payments\\Integrations\\AbstractPaymentMethodType')) {
-        require_once ELYONPAY_WC_PLUGIN_PATH . 'includes/class-wc-elyonpay-blocks-support.php';
+        require_once ELYONPAY_WC_PLUGIN_PATH . 'includes/class-elyonpay-wc-blocks-support.php';
         add_action('woocommerce_blocks_payment_method_type_registration', function ($registry) {
-            $registry->register(new WC_ElyonPay_Blocks_Support());
+            $registry->register(new ElyonPay_WC_Blocks_Support());
         });
     }
 });

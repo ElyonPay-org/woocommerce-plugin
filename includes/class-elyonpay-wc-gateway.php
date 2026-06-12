@@ -12,7 +12,7 @@ use ElyonPay\Environment;
 use ElyonPay\TransactionStatus;
 use ElyonPay\Exception\ElyonPayException;
 
-class WC_ElyonPay_Gateway extends WC_Payment_Gateway
+class ElyonPay_WC_Gateway extends WC_Payment_Gateway
 {
     /** Declared to avoid PHP 8.2+ dynamic property deprecations. */
     public $testmode;

@@ -9,11 +9,11 @@ defined('ABSPATH') || exit;
 
 use Automattic\WooCommerce\Blocks\Payments\Integrations\AbstractPaymentMethodType;
 
-final class WC_ElyonPay_Blocks_Support extends AbstractPaymentMethodType
+final class ElyonPay_WC_Blocks_Support extends AbstractPaymentMethodType
 {
     protected $name = 'elyonpay';
 
-    /** @var WC_ElyonPay_Gateway|false */
+    /** @var ElyonPay_WC_Gateway|false */
     private $gateway = false;
 
     public function initialize()
