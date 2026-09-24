@@ -333,7 +333,7 @@ class ElyonPay_WC_Gateway extends WC_Payment_Gateway
 
         $states = array(
             array('CREATED', __('Transaction créée, pas encore démarrée', 'elyonpay-for-woocommerce')),
-            array('PENDING', __('En cours de traitement', 'elyonpay-for-woocommerce')),
+            array('PENDING', __('Paiement encaissé, en attente de livraison. Malgré son nom, cet état signifie que l\'argent est arrivé.', 'elyonpay-for-woocommerce')),
             array('WAITING_FOR_PAYMENT', __('En attente du paiement du client', 'elyonpay-for-woocommerce')),
             array('ACCEPTED', __('Approuvée et validée (payée)', 'elyonpay-for-woocommerce')),
             array('DELIVERED', __('Fonds transférés (payée)', 'elyonpay-for-woocommerce')),
