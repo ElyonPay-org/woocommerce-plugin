@@ -6,8 +6,9 @@ Accept **Mobile Money** (MTN, Orange, Wave, Moov, Airtel) and **bank cards**
 [![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 
 Built on the [ElyonPay PHP SDK](https://github.com/ElyonPay-org/php-sdk).
-Uses the payment-link flow with **server-side status verification** (no webhook),
-and supports both the **classic** and **block-based** checkout.
+Uses the payment-link flow with **webhooks** and **server-side status
+verification**, authenticates with the merchant **API key**, and supports both
+the **classic** and **block-based** checkout.
 
 ## Requirements
 
@@ -32,22 +33,35 @@ Then in WordPress: **Plugins -> Add New -> Upload Plugin**, upload the zip, acti
 **WooCommerce -> Settings -> Payments -> ElyonPay -> Manage.**
 
 - **Mode test** — sandbox (`api.elyonpay.net`) vs production (`api.elyonpay.org`).
-- **Identifiants** — merchant email + password (test and live are separate fields).
-- **Rôle** — `ROLE_MERCHANT_ADMIN` in production. The documented sandbox test
-  account (`test@test.com` / `TestPassword1`) is listed with `ROLE_CUSTOMER`; if
-  sandbox authentication fails, switch the role to `ROLE_CUSTOMER`.
+- **Clé d'API** — the merchant API key from the ElyonPay dashboard
+  (`pk_live_egt_...`), one for the sandbox account, one for production. It only
+  reaches the payment and transaction endpoints.
+- **Ancienne connexion** — merchant email + password + role, used only when the
+  key of the selected mode is empty. Deprecated: an admin notice asks to switch.
 
-## How payments flow (pull model)
+## How payments flow
 
-1. The customer places the order and is redirected to the ElyonPay payment page.
-2. They pay with Mobile Money (USSD) or a card (3D Secure).
-3. They are redirected back to the store.
-4. The plugin calls `GET /transactions/{ref}` via the SDK and marks the order
-   paid **only** if the status is confirmed server-side. A pending payment is
-   re-checked automatically after 5 minutes (WP-Cron).
+1. `process_payment` creates a payment link with `webhook`
+   (`?wc-api=elyonpay_webhook&order_id=…&order_key=…`), an `external_id`
+   (`wc-<order number>-<random>`, unique per attempt as ElyonPay requires) and the
+   `customer` block (name, e-mail). The link's uuid is stored on the order; every
+   attempt's uuid is kept (`_elyonpay_transaction_ids`).
+2. The customer pays on ElyonPay's page (USSD or 3D Secure).
+3. ElyonPay POSTs a notification at each state change. The body is **unsigned**,
+   so the endpoint only accepts a uuid stored for that order, then reads
+   `GET /transactions/{uuid}` with the API key (7 s timeout, within ElyonPay's
+   10 s) and updates the order. It answers 503 when the API is unreachable or
+   another check holds the order, so ElyonPay retries; 200 otherwise.
+4. The customer's return (`elyonpay_success` / `elyonpay_error`) does the same
+   read. A WP-Cron re-check runs 10 min, 1 h, 6 h and 24 h later while the order
+   is unpaid — the safety net when webhooks cannot reach the site.
 
-Order states: `pending` -> `processing/completed` (paid), `failed`, or `on-hold`
-(pending confirmation). The redirect URL is never trusted on its own.
+A per-order lock (`INSERT IGNORE` on `wp_options`) keeps the three paths from
+completing an order twice.
+
+Order states: `pending` (awaiting payment) -> `processing/completed` (paid),
+`failed` (latest attempt declined or cancelled), or `on-hold` (paid for less
+than the order total — check before shipping).
 
 ## Status mapping
 
@@ -56,9 +70,9 @@ source of truth shared by all ElyonPay plugins:
 
 | Outcome | ElyonPay states |
 |---------|-----------------|
-| Paid    | `ACCEPTED`, `DELIVERED` |
+| Paid    | `PENDING` (money collected, awaiting delivery), `WAITING_FOR_DELIVERY`, `ACCEPTED`, `DELIVERED` |
 | Failed  | `REJECTED`, `DECLINED`, `CANCELLED` |
-| Pending | `CREATED`, `PENDING`, `WAITING_FOR_PAYMENT`, unknown |
+| Pending | `CREATED`, `WAITING_FOR_PAYMENT`, unknown |
 
 ## Blocks checkout
 
@@ -70,10 +84,19 @@ plugin version) so browsers pick up the change.
 
 ## Security
 
-Credentials are stored in the gateway settings and used only server-side to
-obtain a JWT, which is cached in a transient (TTL derived from the token's `exp`
-claim). Nothing is exposed to the browser. Once ElyonPay offers revocable API
-keys, switch to those.
+The API key is stored in the gateway settings and used only server-side. In the
+legacy mode, the JWT obtained with the email + password is cached in a transient
+(TTL derived from the token's `exp` claim). Nothing is exposed to the browser.
+
+## Tests
+
+```bash
+php tests/run.php
+```
+
+Runs the gateway against WordPress/WooCommerce stubs and a fake ElyonPay API
+(webhook, forged uuid, retries, amount check, legacy login). Point
+`ELYONPAY_SDK_SRC` at a checkout of the SDK if `vendor/` is not installed.
 
 ## Testing (sandbox)
 

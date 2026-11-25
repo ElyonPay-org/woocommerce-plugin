@@ -5,7 +5,7 @@
     "license": "MIT",
     "require": {
         "php": ">=7.4",
-        "elyonpay/php-sdk": "^1.0"
+        "elyonpay/php-sdk": "^1.1"
     },
     "repositories": [
         {
