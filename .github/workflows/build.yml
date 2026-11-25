@@ -37,7 +37,6 @@ jobs:
             --exclude 'node_modules' \
             --exclude 'tests' \
             --exclude '.wordpress-org' \
-            --exclude 'composer.json' \
             --exclude 'composer.lock' \
             --exclude 'README.md' \
             --exclude 'build'

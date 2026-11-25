@@ -2,7 +2,7 @@
 Contributors: elyonpay
 Tags: mobile money, payment gateway, mtn momo, orange money, africa
 Requires at least: 5.6
-Tested up to: 7.0
+Tested up to: 7.2
 Requires PHP: 7.4
 Stable tag: 1.3.0
 License: MIT
@@ -179,6 +179,7 @@ transactions, and you can regenerate it from your ElyonPay dashboard at any time
   account currency at the first payment and, when the store uses another one,
   hides ElyonPay at checkout instead of charging an amount read in the wrong
   currency.
+* Tested with WordPress 7.2. "Tested up to" is now declared in readme.txt only.
 * Requires the ElyonPay PHP SDK 1.1.
 
 = 1.2.0 =

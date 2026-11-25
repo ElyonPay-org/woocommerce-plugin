@@ -10,8 +10,7 @@
 # Assets de la fiche WordPress.org (gérés séparément, pas dans le plugin)
 /.wordpress-org
 
-# Composer : on garde vendor/, mais pas les manifestes ni le lock
-composer.json
+# Composer : on garde vendor/ et composer.json (Plugin Check le demande quand vendor/ est livré), pas le lock
 composer.lock
 
 # Doc développeur (WordPress.org utilise readme.txt, pas README.md)

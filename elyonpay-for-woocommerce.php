@@ -9,7 +9,6 @@
  * License:           MIT
  * Text Domain:       elyonpay-for-woocommerce
  * Requires at least: 5.6
- * Tested up to:      7.0
  * Requires PHP:      7.4
  * Requires Plugins:  woocommerce
  * WC requires at least: 4.0
