@@ -225,10 +225,24 @@ test('webhook: the API amount units never hold a correct payment', function () {
     $xaf = paid_attempt_order(63, '15000.50', array('CM01xaf'));
     // EUR: the API counts cents, and its conversion may lose one (19.99 -> 1998).
     $eur = paid_attempt_order(64, '19.99', array('FR01eur'));
-    $g   = gateway(array('test_api_key' => KEY), array(tx('CM01xaf', 'DELIVERED', 15000), tx('FR01eur', 'PENDING', 1998)));
+    $exact = paid_attempt_order(65, '19.99', array('FR01exact'));
+    $g   = gateway(array('test_api_key' => KEY), array(tx('CM01xaf', 'DELIVERED', 15000), tx('FR01eur', 'PENDING', 1998, 'EUR'), tx('FR01exact', 'PENDING', 1999, 'EUR')));
 
     check($g->process_webhook(notification('CM01xaf'), array(), query_for($xaf)) === array(200, 'paid'), 'XAF truncated amount is paid');
-    check($g->process_webhook(notification('FR01eur'), array(), query_for($eur)) === array(200, 'paid'), 'EUR amount in cents is paid');
+    check($g->process_webhook(notification('FR01eur'), array(), query_for($eur)) === array(200, 'paid'), 'EUR amount in cents, one cent lost by the API, is paid');
+    check($g->process_webhook(notification('FR01exact'), array(), query_for($exact)) === array(200, 'paid'), 'EUR exact amount in cents is paid');
+});
+
+test('underpayment in a decimal currency is caught in cents, not compared to euros', function () {
+    // 5.00 EUR paid for a 19.99 EUR order: the API answers 500 (cents). Compared with the total in
+    // euros (500 > 19.99) it used to pass for a full payment.
+    $order = paid_attempt_order(66, '19.99', array('FR01low'));
+    $order->currency = 'EUR';
+    $g = gateway(array('test_api_key' => KEY), array(tx('FR01low', 'DELIVERED', 500, 'EUR')));
+
+    check($g->process_webhook(notification('FR01low', 'transaction.delivered'), array(), query_for($order)) === array(200, 'mismatch'), 'mismatch');
+    check($order->status === 'on-hold' && $order->payment_complete_calls === 0, 'order on hold, not completed');
+    check((bool) preg_grep('/confirmé pour 5 EUR alors que la commande vaut 19\.99 EUR/', $order->notes), 'note in currency units: ' . json_encode($order->notes));
 });
 
 test('webhook: API unreachable answers 503 so ElyonPay retries', function () {
@@ -382,8 +396,6 @@ test('currency: another key, or the other environment, is another account learne
     $live = gateway(array('testmode' => 'no', 'live_api_key' => KEY), array());
     check($live->account_currency() === '', 'same key in live mode: unknown');
 
-    $g->process_admin_options();
-    check($g->account_currency() === '', 'saving the settings forgets it (read again at the next payment)');
 });
 
 echo $failures === 0 ? "\nOK ($count checks)\n" : "\n$failures/$count checks FAILED\n";

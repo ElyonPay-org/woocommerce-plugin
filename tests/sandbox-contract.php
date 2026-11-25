@@ -71,6 +71,8 @@ step(isset($tx['state']) && TransactionStatus::isPending($tx['state']), 'state '
 // 100 in XAF/XOF, 10000 (cents) for an account in a decimal currency such as EUR.
 step(isset($tx['amount']) && in_array((int) $tx['amount'], array(100, 10000), true), 'amount ' . (isset($tx['amount']) ? $tx['amount'] : '-'));
 step(isset($tx['externalId']) && $tx['externalId'] === $external_id, 'externalId ' . (isset($tx['externalId']) ? $tx['externalId'] : '-'));
+// The plugin learns the account currency from this field (the API reads `amount` in it).
+step(isset($tx['beneficiary_currency']) && preg_match('/^[A-Z]{3}$/', (string) $tx['beneficiary_currency']), 'beneficiary_currency ' . (isset($tx['beneficiary_currency']) ? $tx['beneficiary_currency'] : '-'));
 
 echo "3. The same external_id twice is refused\n";
 try {

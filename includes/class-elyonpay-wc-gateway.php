@@ -38,6 +38,12 @@ class ElyonPay_WC_Gateway extends WC_Payment_Gateway
      */
     const OPTION_ACCOUNT_CURRENCY = 'elyonpay_account_currency';
 
+    /**
+     * Currencies the API counts in whole units; every other one in hundredths (cents). mip-back's
+     * isDecimal=false list, GET /api/public/configuration/currencies on 25/11/2026.
+     */
+    const ZERO_DECIMAL_CURRENCIES = array('BIF', 'CLP', 'DJF', 'GNF', 'ISK', 'JPY', 'KMF', 'KRW', 'PYG', 'RWF', 'UGX', 'VND', 'VUV', 'XAF', 'XOF', 'XPF');
+
     /** Declared to avoid PHP 8.2+ dynamic property deprecations. */
     public $testmode;
     public $api_key;
@@ -110,16 +116,10 @@ class ElyonPay_WC_Gateway extends WC_Payment_Gateway
         return '';
     }
 
-    /**
-     * Saving the settings forgets the learned currency: the next payment reads it again (the way
-     * out if the account currency changed on the ElyonPay side).
-     */
-    public function process_admin_options()
+    /** 1 for a currency the API counts in whole units (XAF, XOF...), 100 for the others. */
+    private static function minor_unit($currency)
     {
-        $saved = parent::process_admin_options();
-        delete_option(self::OPTION_ACCOUNT_CURRENCY);
-
-        return $saved;
+        return in_array(strtoupper((string) $currency), self::ZERO_DECIMAL_CURRENCIES, true) ? 1 : 100;
     }
 
     /** True when the account currency is known and is not $currency (the shop's by default). */
@@ -410,7 +410,8 @@ class ElyonPay_WC_Gateway extends WC_Payment_Gateway
         // First payment with these credentials: learn the account currency from the link itself,
         // and do not send the customer to pay an amount read in another currency.
         if ($uuid !== '' && $this->account_currency() === '') {
-            $this->learn_account_currency($client, $uuid);
+            // Its own short timeout: the customer is waiting for the redirect.
+            $this->learn_account_currency($this->client(self::WEBHOOK_HTTP_TIMEOUT), $uuid);
             if ($this->currency_mismatch($currency)) {
                 /* translators: 1: ElyonPay transaction uuid, 2: order currency, 3: currency of the ElyonPay account. */
                 $order->add_order_note(sprintf(__('Lien ElyonPay %1$s abandonné : la commande est en %2$s, le compte ElyonPay encaisse en %3$s, et le montant y aurait été lu en %3$s.', 'elyonpay-for-woocommerce'), $uuid, $currency, $this->account_currency()));
@@ -564,18 +565,25 @@ class ElyonPay_WC_Gateway extends WC_Payment_Gateway
 
         if (TransactionStatus::isPaid($state)) {
             // The API stores the amount as an integer in the merchant account's currency: cents for
-            // a decimal currency (EUR: 12.34 -> 1234), truncated units otherwise (XAF: 15000.5 ->
-            // 15000). Allowing one unit of difference never holds a correct payment in either case,
-            // and still catches a link paid for a lower total (an order edited after the link).
-            $amount = isset($tx['amount']) && is_numeric($tx['amount']) ? (float) $tx['amount'] : null;
-            if ($amount !== null && $amount + 1 < (float) $order->get_total()) {
+            // a decimal currency (EUR: 12.34 -> 1234), whole units otherwise (XAF: 15000.5 ->
+            // 15000). The order total is compared in the same minor units. One unit of tolerance
+            // never holds a correct payment (the API may lose a cent: 19.99 -> 1998), and still
+            // catches a link paid for a lower total (an order edited after the link).
+            $amount   = isset($tx['amount']) && is_numeric($tx['amount']) ? (float) $tx['amount'] : null;
+            $currency = !empty($tx['beneficiary_currency']) ? (string) $tx['beneficiary_currency'] : $this->account_currency();
+            if ($currency === '') {
+                $currency = (string) $order->get_currency();
+            }
+            $unit     = self::minor_unit($currency);
+            $expected = round((float) $order->get_total() * $unit);
+            if ($amount !== null && $amount + 1 < $expected) {
                 if (!$order->is_paid() && !$order->has_status('on-hold')) {
                     $order->update_status('on-hold', sprintf(
                         /* translators: 1: ElyonPay transaction uuid, 2: amount paid, 3: order total. */
                         __('Paiement ElyonPay %1$s confirmé pour %2$s alors que la commande vaut %3$s : vérifiez avant d\'expédier.', 'elyonpay-for-woocommerce'),
                         $reference,
-                        wc_format_decimal($amount),
-                        wc_format_decimal($order->get_total())
+                        wc_format_decimal($amount / $unit) . ' ' . strtoupper($currency),
+                        wc_format_decimal($order->get_total()) . ' ' . strtoupper((string) $order->get_currency())
                     ));
                 }
                 return 'mismatch';
