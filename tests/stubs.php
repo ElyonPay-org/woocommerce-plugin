@@ -15,10 +15,12 @@ final class Stubs
     public static $cron = array();
     public static $orders = array();
     public static $notices = array();
+    public static $currency = 'XAF';
 
     public static function reset()
     {
         self::$options = self::$transients = self::$cron = self::$orders = self::$notices = array();
+        self::$currency = 'XAF';
     }
 }
 
@@ -49,6 +51,9 @@ function add_action() {}
 function add_filter() {}
 
 // --- options, transients, cron ----------------------------------------------------------------
+function delete_option($name) { unset(Stubs::$options[$name]); return true; }
+function update_option($name, $value, $autoload = null) { Stubs::$options[$name] = $value; return true; }
+function get_woocommerce_currency() { return Stubs::$currency; }
 function get_option($name, $default = false) { return array_key_exists($name, Stubs::$options) ? Stubs::$options[$name] : $default; }
 function get_transient($name) { return isset(Stubs::$transients[$name]) ? Stubs::$transients[$name] : false; }
 function set_transient($name, $value, $ttl) { Stubs::$transients[$name] = $value; return true; }
@@ -151,7 +156,7 @@ class WC_Payment_Gateway
     }
 
     public function is_available() { return true; }
-    public function process_admin_options() {}
+    public function process_admin_options() { return true; }
     public function get_method_title() { return $this->method_title; }
     public function get_method_description() { return $this->method_description; }
     public function generate_settings_html() {}
@@ -165,6 +170,7 @@ final class WC_Order
     public $meta = array();
     public $notes = array();
     public $transaction_id = '';
+    public $currency = null;
     public $payment_complete_calls = 0;
     public $billing = array(
         'phone'      => '690000001',
@@ -185,6 +191,7 @@ final class WC_Order
     public function get_order_key() { return 'wc_order_key' . $this->id; }
     public function get_order_number() { return (string) $this->id; }
     public function get_total() { return $this->total; }
+    public function get_currency() { return $this->currency === null ? Stubs::$currency : $this->currency; }
     public function get_payment_method() { return 'elyonpay'; }
     public function get_billing_phone() { return $this->billing['phone']; }
     public function get_billing_country() { return $this->billing['country']; }

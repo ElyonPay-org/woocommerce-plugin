@@ -39,6 +39,15 @@ Then in WordPress: **Plugins -> Add New -> Upload Plugin**, upload the zip, acti
 - **Ancienne connexion** — merchant email + password + role, used only when the
   key of the selected mode is empty. Deprecated: an admin notice asks to switch.
 
+**Currency.** The API takes no currency: it reads `amount` in the ElyonPay
+account's currency (`beneficiary_currency` of the transactions it creates). The
+first payment with given credentials reads that currency back from the link it
+just created and stores it (option `elyonpay_account_currency`, per environment
+and key). When the store or the order uses another currency, the customer is not
+sent to pay, ElyonPay is hidden at checkout, and an admin notice names both
+currencies. A failure to read it lets the payment go ahead as before. Saving the
+settings forgets the learned currency; the next payment reads it again.
+
 ## How payments flow
 
 1. `process_payment` creates a payment link with `webhook`

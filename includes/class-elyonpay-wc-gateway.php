@@ -31,6 +31,13 @@ class ElyonPay_WC_Gateway extends WC_Payment_Gateway
     /** ElyonPay waits 10 s for the webhook acknowledgement: the status read must fit inside. */
     const WEBHOOK_HTTP_TIMEOUT = 7;
 
+    /**
+     * The ElyonPay account's currency, learned from a link it created. The API takes no currency:
+     * it reads `amount` in the account's own, so a shop in another one charges the wrong amount
+     * (an order of 90 EUR becomes 90 XAF).
+     */
+    const OPTION_ACCOUNT_CURRENCY = 'elyonpay_account_currency';
+
     /** Declared to avoid PHP 8.2+ dynamic property deprecations. */
     public $testmode;
     public $api_key;
@@ -83,7 +90,76 @@ class ElyonPay_WC_Gateway extends WC_Payment_Gateway
         if ($this->api_key === '' && !$this->uses_legacy_login()) {
             return false;
         }
+        if ($this->currency_mismatch()) {
+            return false;
+        }
         return parent::is_available();
+    }
+
+    /**
+     * The currency the ElyonPay account collects in, as learned from a link it created; '' while
+     * not known yet.
+     */
+    public function account_currency()
+    {
+        $saved = get_option(self::OPTION_ACCOUNT_CURRENCY);
+        if (is_array($saved) && isset($saved['account'], $saved['currency']) && $saved['account'] === $this->account_fingerprint()) {
+            return (string) $saved['currency'];
+        }
+
+        return '';
+    }
+
+    /**
+     * Saving the settings forgets the learned currency: the next payment reads it again (the way
+     * out if the account currency changed on the ElyonPay side).
+     */
+    public function process_admin_options()
+    {
+        $saved = parent::process_admin_options();
+        delete_option(self::OPTION_ACCOUNT_CURRENCY);
+
+        return $saved;
+    }
+
+    /** True when the account currency is known and is not $currency (the shop's by default). */
+    public function currency_mismatch($currency = null)
+    {
+        $account = $this->account_currency();
+        $other   = strtoupper((string) ($currency === null ? get_woocommerce_currency() : $currency));
+
+        return $account !== '' && $other !== '' && $account !== $other;
+    }
+
+    /**
+     * Whose currency was learned: the environment and the credentials. Another key, or the switch
+     * between test and live, is another account and is learned anew.
+     */
+    private function account_fingerprint()
+    {
+        $who = $this->api_key !== '' ? 'key:' . $this->api_key : 'login:' . $this->username;
+
+        return md5(($this->testmode ? 'test:' : 'live:') . $who);
+    }
+
+    /**
+     * Read the account currency from the transaction just created. A failure is not fatal: the
+     * payment goes ahead as before, and the next one tries again.
+     */
+    private function learn_account_currency(Client $client, $uuid)
+    {
+        try {
+            $tx = $client->getTransaction($uuid);
+        } catch (ElyonPayException $e) {
+            return;
+        }
+        $currency = isset($tx['beneficiary_currency']) ? strtoupper(trim((string) $tx['beneficiary_currency'])) : '';
+        if (preg_match('/^[A-Z]{3}$/', $currency)) {
+            update_option(self::OPTION_ACCOUNT_CURRENCY, array(
+                'account'  => $this->account_fingerprint(),
+                'currency' => $currency,
+            ), false);
+        }
     }
 
     public function get_icon()
@@ -288,6 +364,14 @@ class ElyonPay_WC_Gateway extends WC_Payment_Gateway
             return array('result' => 'failure');
         }
 
+        $currency = strtoupper((string) $order->get_currency());
+        if ($this->currency_mismatch($currency)) {
+            /* translators: 1: order currency, 2: currency of the ElyonPay account. */
+            $order->add_order_note(sprintf(__('Paiement ElyonPay refusé : la commande est en %1$s, le compte ElyonPay encaisse en %2$s.', 'elyonpay-for-woocommerce'), $currency, $this->account_currency()));
+            wc_add_notice(__('Ce moyen de paiement n\'est pas disponible pour la devise de cette commande.', 'elyonpay-for-woocommerce'), 'error');
+            return array('result' => 'failure');
+        }
+
         $return_args = array(
             'order_id'  => $order->get_id(),
             'order_key' => $order->get_order_key(),
@@ -321,8 +405,21 @@ class ElyonPay_WC_Gateway extends WC_Payment_Gateway
         }
         $this->cache_token($client);
 
-        if (preg_match('#/t/([A-Za-z0-9]+)#', (string) wp_parse_url($link['url'], PHP_URL_PATH), $m)) {
-            $uuid  = $m[1];
+        $uuid = preg_match('#/t/([A-Za-z0-9]+)#', (string) wp_parse_url($link['url'], PHP_URL_PATH), $m) ? $m[1] : '';
+
+        // First payment with these credentials: learn the account currency from the link itself,
+        // and do not send the customer to pay an amount read in another currency.
+        if ($uuid !== '' && $this->account_currency() === '') {
+            $this->learn_account_currency($client, $uuid);
+            if ($this->currency_mismatch($currency)) {
+                /* translators: 1: ElyonPay transaction uuid, 2: order currency, 3: currency of the ElyonPay account. */
+                $order->add_order_note(sprintf(__('Lien ElyonPay %1$s abandonné : la commande est en %2$s, le compte ElyonPay encaisse en %3$s, et le montant y aurait été lu en %3$s.', 'elyonpay-for-woocommerce'), $uuid, $currency, $this->account_currency()));
+                wc_add_notice(__('Ce moyen de paiement n\'est pas disponible pour la devise de cette commande.', 'elyonpay-for-woocommerce'), 'error');
+                return array('result' => 'failure');
+            }
+        }
+
+        if ($uuid !== '') {
             $known = $this->transaction_ids($order);
             if (!in_array($uuid, $known, true)) {
                 $known[] = $uuid;
@@ -657,6 +754,22 @@ class ElyonPay_WC_Gateway extends WC_Payment_Gateway
             echo '<div class="notice notice-info inline"><p>'
                 . esc_html__('Mode TEST actif (api.elyonpay.net) : renseignez la clé d\'API de votre compte sandbox.', 'elyonpay-for-woocommerce')
                 . '</p></div>';
+        }
+        if ($this->currency_mismatch()) {
+            echo '<div class="notice notice-error inline"><p>'
+                . esc_html(sprintf(
+                    /* translators: 1: shop currency, 2: currency of the ElyonPay account. */
+                    __('La boutique est en %1$s, mais ce compte ElyonPay encaisse en %2$s : ElyonPay est masqué au paiement, car l\'API lirait le montant en %2$s. Passez la boutique en %2$s, ou utilisez un compte ElyonPay en %1$s.', 'elyonpay-for-woocommerce'),
+                    get_woocommerce_currency(),
+                    $this->account_currency()
+                ))
+                . '</p></div>';
+        } elseif ($this->account_currency() !== '') {
+            echo '<p>' . esc_html(sprintf(
+                /* translators: %s: currency of the ElyonPay account. */
+                __('Devise du compte ElyonPay : %s (apprise au premier paiement).', 'elyonpay-for-woocommerce'),
+                $this->account_currency()
+            )) . '</p>';
         }
         if ($this->uses_legacy_login()) {
             echo '<div class="notice notice-warning inline"><p>'

@@ -77,6 +77,7 @@ function elyonpay_wc_init()
     add_action('woocommerce_api_elyonpay_webhook', 'elyonpay_handle_webhook');
 
     add_action('admin_notices', 'elyonpay_legacy_login_notice');
+    add_action('admin_notices', 'elyonpay_currency_notice');
 }
 
 /**
@@ -123,6 +124,30 @@ function elyonpay_legacy_login_notice()
     $url = admin_url('admin.php?page=wc-settings&tab=checkout&section=elyonpay');
     echo '<div class="notice notice-warning"><p><strong>ElyonPay :</strong> '
         . esc_html__('la boutique se connecte encore avec l\'e-mail et le mot de passe du compte marchand. Renseignez la clé d\'API de votre tableau de bord ElyonPay.', 'elyonpay-for-woocommerce')
+        . ' <a href="' . esc_url($url) . '">' . esc_html__('Paramètres ElyonPay', 'elyonpay-for-woocommerce') . '</a></p></div>';
+}
+
+/**
+ * The API reads the amount in the ElyonPay account's currency: a shop in another one is hidden at
+ * checkout, and the merchant has to know why.
+ */
+function elyonpay_currency_notice()
+{
+    if (!current_user_can('manage_woocommerce')) {
+        return;
+    }
+    $gateway = new ElyonPay_WC_Gateway();
+    if ('yes' !== $gateway->enabled || !$gateway->currency_mismatch()) {
+        return;
+    }
+    $url = admin_url('admin.php?page=wc-settings&tab=checkout&section=elyonpay');
+    echo '<div class="notice notice-error"><p><strong>ElyonPay :</strong> '
+        . esc_html(sprintf(
+            /* translators: 1: shop currency, 2: currency of the ElyonPay account. */
+            __('la boutique est en %1$s, mais votre compte ElyonPay encaisse en %2$s. ElyonPay est masqué au paiement : l\'API lirait le montant en %2$s.', 'elyonpay-for-woocommerce'),
+            get_woocommerce_currency(),
+            $gateway->account_currency()
+        ))
         . ' <a href="' . esc_url($url) . '">' . esc_html__('Paramètres ElyonPay', 'elyonpay-for-woocommerce') . '</a></p></div>';
 }
 

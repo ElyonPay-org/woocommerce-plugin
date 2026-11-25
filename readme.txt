@@ -89,6 +89,10 @@ ElyonPay's terms of service and privacy policy, available on elyonpay.com.
   then at regular intervals.
 * **Legacy login**: the merchant email and password fields still work when no
   API key is set, but are deprecated.
+* **Store currency**: it must be the currency of your ElyonPay account. ElyonPay
+  reads the amount in the account's currency, so the plugin learns it at the
+  first payment and hides ElyonPay at checkout (with an admin notice) when the
+  store uses another one.
 
 = Requirements =
 
@@ -114,6 +118,10 @@ Visit elyonpay.com to create one.
 ElyonPay targets Cameroon, West and Central Africa, and supports the XAF, XOF,
 EUR, USD, GBP, NGN, KES and CDF currencies. Mobile Money operator availability
 depends on the country.
+
+Your store must use the currency of your ElyonPay account: amounts are read in
+that currency. When they differ, ElyonPay is hidden at checkout and an admin
+notice tells you which currencies are involved.
 
 = Does the plugin work with the block checkout? =
 
@@ -167,6 +175,10 @@ transactions, and you can regenerate it from your ElyonPay dashboard at any time
   re-checked after 10 minutes, 1 hour, 6 hours and 24 hours.
 * A retry on the "pay for order" page no longer lets an older, declined link
   fail an order that was paid with the new one.
+* The store currency must be the ElyonPay account's: the plugin learns the
+  account currency at the first payment and, when the store uses another one,
+  hides ElyonPay at checkout instead of charging an amount read in the wrong
+  currency.
 * Requires the ElyonPay PHP SDK 1.1.
 
 = 1.2.0 =
@@ -182,7 +194,7 @@ transactions, and you can regenerate it from your ElyonPay dashboard at any time
 == Upgrade Notice ==
 
 = 1.3.0 =
-Recommended: paste your ElyonPay API key in the settings (it replaces the merchant password) and get real-time payment statuses through webhooks.
+Recommended: paste your ElyonPay API key in the settings (it replaces the merchant password) and get real-time payment statuses through webhooks. Your store currency must be your ElyonPay account's: otherwise ElyonPay is hidden at checkout.
 
 = 1.2.0 =
 Recommended update: fixes payment validation (statuses) and phone-number formatting. Remember to run "composer install" when building the archive.

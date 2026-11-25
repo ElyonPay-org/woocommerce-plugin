@@ -55,7 +55,7 @@ const KEY = 'pk_live_egt_00112233445566778899aabbccddeeff';
 
 function ok($status, $body) { return array('status' => $status, 'body' => is_string($body) ? $body : json_encode($body)); }
 function link_response($uuid) { return ok(201, array('url' => 'https://app.elyonpay.net/t/' . $uuid . '?success=x&error=y')); }
-function tx($uuid, $state, $amount) { return ok(201, array('uuid' => $uuid, 'state' => $state, 'amount' => $amount)); }
+function tx($uuid, $state, $amount, $currency = 'XAF') { return ok(201, array('uuid' => $uuid, 'state' => $state, 'amount' => $amount, 'beneficiary_currency' => $currency)); }
 function notification($uuid, $event = 'transaction.pending')
 {
     return json_encode(array('event' => $event, 'data' => array('transaction' => $uuid, 'state' => 'ANY', 'amount' => 1)));
@@ -105,7 +105,7 @@ function test($name, callable $fn)
 // ---------------------------------------------------------------------------------------------
 
 test('process_payment uses the API key and sends webhook, external_id, customer', function () {
-    $g     = gateway(array('test_api_key' => KEY), array(link_response('CM01aaa')));
+    $g     = gateway(array('test_api_key' => KEY), array(link_response('CM01aaa'), tx('CM01aaa', 'WAITING_FOR_PAYMENT', 15000)));
     $order = new WC_Order(42, '15000');
     $res   = $g->process_payment(42);
 
@@ -113,7 +113,8 @@ test('process_payment uses the API key and sends webhook, external_id, customer'
     $req = $g->http_client->requests[0];
     check($req['url'] === 'https://api.elyonpay.net/api/request-to-pay/payment/link', 'sandbox link endpoint');
     check($req['headers']['Authorization'] === 'Bearer ' . KEY, 'Bearer API key');
-    check(count($g->http_client->requests) === 1, 'no /login call');
+    check(count($g->http_client->requests) === 2 && $g->http_client->requests[1]['url'] === 'https://api.elyonpay.net/api/transactions/CM01aaa', 'no /login call; the link is read back once to learn the account currency');
+    check($g->account_currency() === 'XAF', 'account currency learned');
     $body = json_decode($req['body'], true);
     check($body['msisdn'] === '+237690000001', 'msisdn normalised');
     check($body['webhook'] === 'https://shop.test/?wc-api=elyonpay_webhook&order_id=42&order_key=wc_order_key42', 'webhook URL carries the order');
@@ -125,7 +126,7 @@ test('process_payment uses the API key and sends webhook, external_id, customer'
 });
 
 test('a retry on the same order keeps both uuids and uses a new external_id', function () {
-    $g     = gateway(array('test_api_key' => KEY), array(link_response('CM01aaa'), link_response('CM01bbb')));
+    $g     = gateway(array('test_api_key' => KEY), array(link_response('CM01aaa'), tx('CM01aaa', 'WAITING_FOR_PAYMENT', 5000), link_response('CM01bbb')));
     $order = new WC_Order(43, '5000');
     $g->process_payment(43);
     $first = $order->meta[ElyonPay_WC_Gateway::META_EXTERNAL_ID];
@@ -292,7 +293,7 @@ test('scheduled re-check: backs off while unpaid, stops when the delays run out'
 
 test('legacy login still works when no API key is set, and caches the JWT', function () {
     $jwt = 'h.' . rtrim(strtr(base64_encode(json_encode(array('exp' => time() + 3600))), '+/', '-_'), '=') . '.s';
-    $g   = gateway(array('test_username' => 'm@example.com', 'test_password' => 'secret'), array(ok(200, array('token' => $jwt)), link_response('CM01leg')));
+    $g   = gateway(array('test_username' => 'm@example.com', 'test_password' => 'secret'), array(ok(200, array('token' => $jwt)), link_response('CM01leg'), tx('CM01leg', 'WAITING_FOR_PAYMENT', 1000)));
     new WC_Order(61, '1000');
 
     check($g->uses_legacy_login() && $g->is_available(), 'legacy mode, available');
@@ -324,6 +325,65 @@ test('process_payment: an API refusal is shown to the customer and noted on the 
     check($res['result'] === 'failure', 'failure');
     check(count(Stubs::$notices) === 1 && Stubs::$notices[0][0] === 'error', 'customer notice');
     check(in_array('ElyonPay: Invalid API key.', $order->notes, true), 'order note with the API message');
+});
+
+test('currency: a shop in another currency than the account never sends the customer to pay', function () {
+    // The API takes no currency and reads the amount in the account's: 90 EUR would become 90 XAF.
+    Stubs::$currency = 'EUR';
+    $g     = gateway(array('test_api_key' => KEY), array(link_response('CM01eur'), tx('CM01eur', 'WAITING_FOR_PAYMENT', 90, 'XAF')));
+    $order = new WC_Order(70, '90');
+
+    $res = $g->process_payment(70);
+
+    check($res['result'] === 'failure', 'no redirect to the payment page');
+    check(count(Stubs::$notices) === 1 && Stubs::$notices[0][0] === 'error', 'customer told the method is not available');
+    check((bool) preg_grep('/CM01eur abandonné : la commande est en EUR, le compte ElyonPay encaisse en XAF/', $order->notes), 'order note names both currencies: ' . json_encode($order->notes));
+    check(!isset($order->meta[ElyonPay_WC_Gateway::META_LATEST]) && Stubs::$cron === array(), 'link not kept, no re-check');
+    check($g->account_currency() === 'XAF' && !$g->is_available(), 'currency learned; ElyonPay now hidden at checkout');
+
+    // Next order: refused before any API call.
+    $g->http_client = new Fake_Api(array());
+    $res = $g->process_payment((new WC_Order(71, '90'))->get_id());
+    check($res['result'] === 'failure' && $g->http_client->requests === array(), 'refused upfront, no link created');
+});
+
+test('currency: once learned, a matching shop pays with no extra call', function () {
+    $g = gateway(array('test_api_key' => KEY), array(link_response('CM01one'), tx('CM01one', 'WAITING_FOR_PAYMENT', 1000), link_response('CM01two')));
+    new WC_Order(72, '1000');
+    new WC_Order(73, '1000');
+    $g->process_payment(72);
+    $res = $g->process_payment(73);
+
+    check($res['result'] === 'success', 'second order redirected');
+    check(count($g->http_client->requests) === 3, 'currency read once, not on every order');
+    check($g->is_available(), 'available');
+});
+
+test('currency: an unreadable currency does not block the payment', function () {
+    $g     = gateway(array('test_api_key' => KEY), array(link_response('CM01aaa'), new ElyonPay\Exception\ApiException('HTTP transport error (28): timeout')));
+    $order = new WC_Order(74, '1000');
+
+    $res = $g->process_payment(74);
+
+    check($res['result'] === 'success', 'payment goes ahead as before');
+    check($g->account_currency() === '', 'still unknown, tried again next time');
+});
+
+test('currency: another key, or the other environment, is another account learned anew', function () {
+    $g = gateway(array('test_api_key' => KEY), array(link_response('CM01aaa'), tx('CM01aaa', 'WAITING_FOR_PAYMENT', 1000, 'XAF')));
+    new WC_Order(75, '1000');
+    $g->process_payment(75);
+    check($g->account_currency() === 'XAF', 'learned for this key');
+
+    Stubs::$currency = 'EUR';
+    $other = gateway(array('test_api_key' => 'pk_live_egt_ffeeddccbbaa99887766554433221100'), array());
+    check($other->account_currency() === '' && $other->is_available(), 'another key: unknown, not hidden');
+
+    $live = gateway(array('testmode' => 'no', 'live_api_key' => KEY), array());
+    check($live->account_currency() === '', 'same key in live mode: unknown');
+
+    $g->process_admin_options();
+    check($g->account_currency() === '', 'saving the settings forgets it (read again at the next payment)');
 });
 
 echo $failures === 0 ? "\nOK ($count checks)\n" : "\n$failures/$count checks FAILED\n";
