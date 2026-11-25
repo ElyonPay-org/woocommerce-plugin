@@ -253,11 +253,24 @@ test('webhook: another check holding the order answers 503 without calling the A
     check($g->process_webhook(notification('CM01aaa'), array(), query_for($order)) === array(200, 'paid'), 'stale lock taken over');
 });
 
-test('webhook: a uuid the API does not know for this merchant is acknowledged', function () {
+test('a 400 on a uuid of this order is retried, not taken as final', function () {
+    // The API answers 400 when it cannot refresh the state from the payment service, for a
+    // transaction that is ours: a passing outage, not a foreign uuid.
     $order = paid_attempt_order(59, '1000', array('CM01aaa'));
-    $g     = gateway(array('test_api_key' => KEY), array(ok(400, array('message' => 'Action not authorized'))));
+    $g     = gateway(array('test_api_key' => KEY), array(
+        ok(400, array('message' => array('[STATUS] Provider cannot found transaction tr_123'))),
+        ok(400, array('message' => array('[STATUS] Provider cannot found transaction tr_123'))),
+        tx('CM01aaa', 'PENDING', 1000),
+    ));
 
-    check($g->process_webhook(notification('CM01aaa'), array(), query_for($order)) === array(200, 'unknown'), '200 unknown');
+    check($g->process_webhook(notification('CM01aaa'), array(), query_for($order)) === array(503, 'error'), 'webhook answers 503 so ElyonPay retries');
+
+    Stubs::$cron = array();
+    $g->run_scheduled_check($order);
+    check(wp_next_scheduled('elyonpay_check_transaction_status', array(59)) !== false, 'the scheduled re-check keeps going');
+    check($order->status === 'pending', 'order unchanged meanwhile');
+
+    check($g->process_webhook(notification('CM01aaa'), array(), query_for($order)) === array(200, 'paid'), 'paid once the API reads it');
 });
 
 test('scheduled re-check: backs off while unpaid, stops when the delays run out', function () {

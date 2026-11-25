@@ -70,7 +70,7 @@ source of truth shared by all ElyonPay plugins:
 
 | Outcome | ElyonPay states |
 |---------|-----------------|
-| Paid    | `PENDING` (money collected, awaiting delivery), `WAITING_FOR_DELIVERY`, `ACCEPTED`, `DELIVERED` |
+| Paid    | `PENDING` (money collected, awaiting delivery), `WAITING_FOR_DELIVERY`, `ACCEPTED`, `PREPARATION`, `DELIVERING`, `DELIVERED` |
 | Failed  | `REJECTED`, `DECLINED`, `CANCELLED` |
 | Pending | `CREATED`, `WAITING_FOR_PAYMENT`, unknown |
 

@@ -428,11 +428,15 @@ class ElyonPay_WC_Gateway extends WC_Payment_Gateway
             try {
                 $tx = $client->getTransaction($reference);
             } catch (ApiException $e) {
-                // 400: the API does not know this uuid for this merchant (wrong environment or key).
+                // 400 on a uuid this site created itself is not final. The API answers 400 both for a
+                // uuid it does not know for this key (environment or key changed since the payment)
+                // and when it cannot reach the payment service to refresh the state ("[STATUS]
+                // Provider cannot found transaction ..."), a passing outage. Retry on the usual
+                // schedule, which runs out on its own.
                 if ($e->getHttpStatus() === 400) {
                     /* translators: 1: ElyonPay transaction uuid, 2: error message returned by the API. */
-                    $order->add_order_note(sprintf(__('ElyonPay ne reconnaît pas la transaction %1$s pour ce compte : %2$s', 'elyonpay-for-woocommerce'), $reference, $e->getMessage()));
-                    return 'unknown';
+                    $order->add_order_note(sprintf(__('ElyonPay n\'a pas pu lire la transaction %1$s : %2$s. Nouvel essai prévu.', 'elyonpay-for-woocommerce'), $reference, $e->getMessage()));
+                    return 'error';
                 }
                 /* translators: %s is the error message returned by the ElyonPay API. */
                 $order->add_order_note(sprintf(__('Erreur de vérification ElyonPay : %s', 'elyonpay-for-woocommerce'), $e->getMessage()));
