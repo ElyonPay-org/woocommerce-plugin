@@ -219,6 +219,17 @@ test('webhook: paid for less than the order total puts the order on hold', funct
     check($order->status === 'on-hold' && $order->payment_complete_calls === 0, 'on hold, not completed');
 });
 
+test('webhook: the API amount units never hold a correct payment', function () {
+    // XAF with decimals in the shop: the API truncates 15000.50 to 15000.
+    $xaf = paid_attempt_order(63, '15000.50', array('CM01xaf'));
+    // EUR: the API counts cents, and its conversion may lose one (19.99 -> 1998).
+    $eur = paid_attempt_order(64, '19.99', array('FR01eur'));
+    $g   = gateway(array('test_api_key' => KEY), array(tx('CM01xaf', 'DELIVERED', 15000), tx('FR01eur', 'PENDING', 1998)));
+
+    check($g->process_webhook(notification('CM01xaf'), array(), query_for($xaf)) === array(200, 'paid'), 'XAF truncated amount is paid');
+    check($g->process_webhook(notification('FR01eur'), array(), query_for($eur)) === array(200, 'paid'), 'EUR amount in cents is paid');
+});
+
 test('webhook: API unreachable answers 503 so ElyonPay retries', function () {
     $order = paid_attempt_order(57, '1000', array('CM01aaa'));
     $g     = gateway(array('test_api_key' => KEY), array(new ElyonPay\Exception\ApiException('HTTP transport error (28): timeout')));

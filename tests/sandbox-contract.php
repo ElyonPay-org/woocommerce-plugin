@@ -68,7 +68,8 @@ echo "2. Transaction read back with the API key\n";
 $tx = $client->getTransaction($uuid);
 step(isset($tx['uuid']) && $tx['uuid'] === $uuid, 'uuid ' . (isset($tx['uuid']) ? $tx['uuid'] : '-'));
 step(isset($tx['state']) && TransactionStatus::isPending($tx['state']), 'state ' . (isset($tx['state']) ? $tx['state'] : '-') . ' (not paid yet)');
-step(isset($tx['amount']) && (float) $tx['amount'] === 100.0, 'amount ' . (isset($tx['amount']) ? $tx['amount'] : '-'));
+// 100 in XAF/XOF, 10000 (cents) for an account in a decimal currency such as EUR.
+step(isset($tx['amount']) && in_array((int) $tx['amount'], array(100, 10000), true), 'amount ' . (isset($tx['amount']) ? $tx['amount'] : '-'));
 step(isset($tx['externalId']) && $tx['externalId'] === $external_id, 'externalId ' . (isset($tx['externalId']) ? $tx['externalId'] : '-'));
 
 echo "3. The same external_id twice is refused\n";

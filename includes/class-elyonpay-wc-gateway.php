@@ -462,8 +462,12 @@ class ElyonPay_WC_Gateway extends WC_Payment_Gateway
         $state = isset($tx['state']) ? $tx['state'] : (isset($tx['status']) ? $tx['status'] : null);
 
         if (TransactionStatus::isPaid($state)) {
+            // The API stores the amount as an integer in the merchant account's currency: cents for
+            // a decimal currency (EUR: 12.34 -> 1234), truncated units otherwise (XAF: 15000.5 ->
+            // 15000). Allowing one unit of difference never holds a correct payment in either case,
+            // and still catches a link paid for a lower total (an order edited after the link).
             $amount = isset($tx['amount']) && is_numeric($tx['amount']) ? (float) $tx['amount'] : null;
-            if ($amount !== null && $amount + 0.01 < (float) $order->get_total()) {
+            if ($amount !== null && $amount + 1 < (float) $order->get_total()) {
                 if (!$order->is_paid() && !$order->has_status('on-hold')) {
                     $order->update_status('on-hold', sprintf(
                         /* translators: 1: ElyonPay transaction uuid, 2: amount paid, 3: order total. */
