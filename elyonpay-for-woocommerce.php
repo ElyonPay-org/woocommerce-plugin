@@ -3,13 +3,12 @@
  * Plugin Name:       ElyonPay for WooCommerce
  * Plugin URI:        https://github.com/ElyonPay-org/woocommerce-plugin
  * Description:       Passerelle de paiement ElyonPay pour WooCommerce (Mobile Money, cartes bancaires). Construit sur le SDK PHP officiel.
- * Version:           1.2.0
+ * Version:           1.3.0
  * Author:            ElyonPay
  * Author URI:        https://elyonpay.com
  * License:           MIT
  * Text Domain:       elyonpay-for-woocommerce
  * Requires at least: 5.6
- * Tested up to:      7.0
  * Requires PHP:      7.4
  * Requires Plugins:  woocommerce
  * WC requires at least: 4.0
@@ -20,7 +19,7 @@
 
 defined('ABSPATH') || exit;
 
-define('ELYONPAY_WC_VERSION', '1.2.0');
+define('ELYONPAY_WC_VERSION', '1.3.0');
 define('ELYONPAY_WC_PLUGIN_FILE', __FILE__);
 define('ELYONPAY_WC_PLUGIN_URL', plugin_dir_url(__FILE__));
 define('ELYONPAY_WC_PLUGIN_PATH', plugin_dir_path(__FILE__));
@@ -69,9 +68,86 @@ function elyonpay_wc_init()
         return $gateways;
     });
 
-    // Return handlers (pull model): ElyonPay redirects the customer here.
+    // Return handlers: ElyonPay redirects the customer here.
     add_action('woocommerce_api_elyonpay_success', 'elyonpay_handle_payment_return');
     add_action('woocommerce_api_elyonpay_error', 'elyonpay_handle_payment_return');
+
+    // Webhook: ElyonPay notifies each state change of a transaction here (server to server).
+    add_action('woocommerce_api_elyonpay_webhook', 'elyonpay_handle_webhook');
+
+    add_action('admin_notices', 'elyonpay_legacy_login_notice');
+    add_action('admin_notices', 'elyonpay_currency_notice');
+}
+
+/**
+ * Webhook endpoint (?wc-api=elyonpay_webhook). The notification is unsigned: the gateway only uses
+ * it to know which transaction to read back from the API.
+ */
+function elyonpay_handle_webhook()
+{
+    $method = isset($_SERVER['REQUEST_METHOD']) ? strtoupper(sanitize_text_field(wp_unslash($_SERVER['REQUEST_METHOD']))) : '';
+    if ($method !== 'POST') {
+        status_header(405);
+        exit;
+    }
+
+    $body    = (string) file_get_contents('php://input');
+    $headers = array();
+    foreach (array('HTTP_X_MIP_EVENT', 'HTTP_X_MIP_DELIVERY', 'HTTP_X_MIP_ATTEMPT') as $name) {
+        if (isset($_SERVER[$name])) {
+            $headers[$name] = sanitize_text_field(wp_unslash($_SERVER[$name]));
+        }
+    }
+
+    // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- server-to-server call; authenticity comes from reading the status back from the API.
+    list($status, $reason) = (new ElyonPay_WC_Gateway())->process_webhook($body, $headers, $_GET);
+
+    status_header($status);
+    header('Content-Type: text/plain; charset=utf-8');
+    echo esc_html($reason);
+    exit;
+}
+
+/**
+ * Remind the shop manager to switch from the merchant password to the API key.
+ */
+function elyonpay_legacy_login_notice()
+{
+    if (!current_user_can('manage_woocommerce')) {
+        return;
+    }
+    $gateway = new ElyonPay_WC_Gateway();
+    if ('yes' !== $gateway->enabled || !$gateway->uses_legacy_login()) {
+        return;
+    }
+    $url = admin_url('admin.php?page=wc-settings&tab=checkout&section=elyonpay');
+    echo '<div class="notice notice-warning"><p><strong>ElyonPay :</strong> '
+        . esc_html__('la boutique se connecte encore avec l\'e-mail et le mot de passe du compte marchand. Renseignez la clé d\'API de votre tableau de bord ElyonPay.', 'elyonpay-for-woocommerce')
+        . ' <a href="' . esc_url($url) . '">' . esc_html__('Paramètres ElyonPay', 'elyonpay-for-woocommerce') . '</a></p></div>';
+}
+
+/**
+ * The API reads the amount in the ElyonPay account's currency: a shop in another one is hidden at
+ * checkout, and the merchant has to know why.
+ */
+function elyonpay_currency_notice()
+{
+    if (!current_user_can('manage_woocommerce')) {
+        return;
+    }
+    $gateway = new ElyonPay_WC_Gateway();
+    if ('yes' !== $gateway->enabled || !$gateway->currency_mismatch()) {
+        return;
+    }
+    $url = admin_url('admin.php?page=wc-settings&tab=checkout&section=elyonpay');
+    echo '<div class="notice notice-error"><p><strong>ElyonPay :</strong> '
+        . esc_html(sprintf(
+            /* translators: 1: shop currency, 2: currency of the ElyonPay account. */
+            __('la boutique est en %1$s, mais votre compte ElyonPay encaisse en %2$s. ElyonPay est masqué au paiement : l\'API lirait le montant en %2$s.', 'elyonpay-for-woocommerce'),
+            get_woocommerce_currency(),
+            $gateway->account_currency()
+        ))
+        . ' <a href="' . esc_url($url) . '">' . esc_html__('Paramètres ElyonPay', 'elyonpay-for-woocommerce') . '</a></p></div>';
 }
 
 /**
@@ -113,16 +189,14 @@ function elyonpay_handle_payment_return()
         exit;
     }
 
-    // Pending: schedule a re-check and send the customer to the received page.
-    if (!wp_next_scheduled('elyonpay_check_transaction_status', array($order->get_id()))) {
-        wp_schedule_single_event(time() + 300, 'elyonpay_check_transaction_status', array($order->get_id()));
-    }
+    // Not decided yet: the webhook will settle it; re-check soon in case it does not get through.
+    ElyonPay_WC_Gateway::schedule_check($order->get_id(), 300);
     wp_safe_redirect($order->get_checkout_order_received_url());
     exit;
 }
 
 /**
- * Cron re-check for pending payments.
+ * Scheduled re-check of unpaid orders: the safety net when no webhook gets through.
  */
 add_action('elyonpay_check_transaction_status', function ($order_id) {
     if (!class_exists('ElyonPay_WC_Gateway')) {
@@ -130,7 +204,7 @@ add_action('elyonpay_check_transaction_status', function ($order_id) {
     }
     $order = wc_get_order($order_id);
     if ($order && $order->get_payment_method() === 'elyonpay') {
-        (new ElyonPay_WC_Gateway())->verify_transaction_status($order);
+        (new ElyonPay_WC_Gateway())->run_scheduled_check($order);
     }
 });
 
