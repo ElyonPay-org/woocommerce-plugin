@@ -37,7 +37,9 @@ Then in WordPress: **Plugins -> Add New -> Upload Plugin**, upload the zip, acti
   (`pk_live_egt_...`), one for the sandbox account, one for production. It only
   reaches the payment and transaction endpoints.
 - **Ancienne connexion** — merchant email + password + role, used only when the
-  key of the selected mode is empty. Deprecated: an admin notice asks to switch.
+  key of the selected mode is empty. Deprecated: it fails as soon as the account
+  enables two-step verification (MFA), because `POST /login` then answers `401`
+  `mfa_required` instead of a token. An admin notice asks to switch.
 
 **Currency.** The API takes no currency: it reads `amount` in the ElyonPay
 account's currency (`beneficiary_currency` of the transactions it creates). The

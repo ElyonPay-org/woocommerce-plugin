@@ -4,7 +4,7 @@ Tags: mobile money, payment gateway, mtn momo, orange money, africa
 Requires at least: 5.6
 Tested up to: 7.2
 Requires PHP: 7.4
-Stable tag: 1.3.0
+Stable tag: 1.3.1
 License: MIT
 License URI: https://opensource.org/licenses/MIT
 
@@ -87,8 +87,10 @@ ElyonPay's terms of service and privacy policy, available on elyonpay.com.
   notify (`?wc-api=elyonpay_webhook` on your site); it must be reachable from the
   Internet. If it is not, statuses are still read when the customer returns and
   then at regular intervals.
-* **Legacy login**: the merchant email and password fields still work when no
-  API key is set, but are deprecated.
+* **Legacy login** (deprecated): the merchant email and password fields are
+  used only when no API key is set. They stop working as soon as two-step
+  verification (MFA) is enabled on the ElyonPay account, since that sign-in then
+  asks for a one-time code: payments fail until the API key is filled in.
 * **Store currency**: it must be the currency of your ElyonPay account. ElyonPay
   reads the amount in the account's currency, so the plugin learns it at the
   first payment and hides ElyonPay at checkout (with an admin notice) when the
@@ -162,6 +164,11 @@ transactions, and you can regenerate it from your ElyonPay dashboard at any time
 
 == Changelog ==
 
+= 1.3.1 =
+* The legacy email + password login stops working once two-step verification
+  (MFA) is enabled on the ElyonPay account. The settings page, the admin notice
+  and this readme now say so: fill in the API key to keep collecting payments.
+
 = 1.3.0 =
 * Authentication with the merchant API key (scoped, regenerable). The email +
   password login keeps working when no key is set, with a reminder to switch.
@@ -193,6 +200,9 @@ transactions, and you can regenerate it from your ElyonPay dashboard at any time
 * Previous standalone release (direct API calls).
 
 == Upgrade Notice ==
+
+= 1.3.1 =
+Still signing in with your merchant email and password? That login stops working once two-step verification (MFA) is enabled on your ElyonPay account: paste your API key in the settings.
 
 = 1.3.0 =
 Recommended: paste your ElyonPay API key in the settings (it replaces the merchant password) and get real-time payment statuses through webhooks. Your store currency must be your ElyonPay account's: otherwise ElyonPay is hidden at checkout.

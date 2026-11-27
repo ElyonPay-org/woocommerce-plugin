@@ -233,7 +233,7 @@ class ElyonPay_WC_Gateway extends WC_Payment_Gateway
             'legacy' => array(
                 'title'       => __('Ancienne connexion par e-mail et mot de passe (dépréciée)', 'elyonpay-for-woocommerce'),
                 'type'        => 'title',
-                'description' => __('Utilisée seulement si la clé d\'API du mode choisi est vide. Le mot de passe ouvre tout votre compte marchand : passez à la clé d\'API, puis videz ces champs.', 'elyonpay-for-woocommerce'),
+                'description' => __('Utilisée seulement si la clé d\'API du mode choisi est vide. Elle ne marche plus dès que la validation en deux étapes (MFA) est activée sur le compte, et le mot de passe ouvre tout votre compte marchand : passez à la clé d\'API, puis videz ces champs.', 'elyonpay-for-woocommerce'),
             ),
             'role' => array(
                 'title'   => __('Rôle', 'elyonpay-for-woocommerce'),
@@ -781,7 +781,7 @@ class ElyonPay_WC_Gateway extends WC_Payment_Gateway
         }
         if ($this->uses_legacy_login()) {
             echo '<div class="notice notice-warning inline"><p>'
-                . esc_html__('Ce mode utilise encore l\'e-mail et le mot de passe du compte marchand. Renseignez la clé d\'API : elle n\'ouvre que les paiements et se régénère si elle fuit.', 'elyonpay-for-woocommerce')
+                . esc_html__('Ce mode utilise encore l\'e-mail et le mot de passe du compte marchand : dès que la validation en deux étapes (MFA) est activée sur le compte, cette connexion demande un code à usage unique et les paiements échouent. Renseignez la clé d\'API : elle n\'ouvre que les paiements et se régénère si elle fuit.', 'elyonpay-for-woocommerce')
                 . '</p></div>';
         }
         echo '<table class="form-table">';

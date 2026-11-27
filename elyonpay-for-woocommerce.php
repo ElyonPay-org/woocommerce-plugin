@@ -3,7 +3,7 @@
  * Plugin Name:       ElyonPay for WooCommerce
  * Plugin URI:        https://github.com/ElyonPay-org/woocommerce-plugin
  * Description:       Passerelle de paiement ElyonPay pour WooCommerce (Mobile Money, cartes bancaires). Construit sur le SDK PHP officiel.
- * Version:           1.3.0
+ * Version:           1.3.1
  * Author:            ElyonPay
  * Author URI:        https://elyonpay.com
  * License:           MIT
@@ -19,7 +19,7 @@
 
 defined('ABSPATH') || exit;
 
-define('ELYONPAY_WC_VERSION', '1.3.0');
+define('ELYONPAY_WC_VERSION', '1.3.1');
 define('ELYONPAY_WC_PLUGIN_FILE', __FILE__);
 define('ELYONPAY_WC_PLUGIN_URL', plugin_dir_url(__FILE__));
 define('ELYONPAY_WC_PLUGIN_PATH', plugin_dir_path(__FILE__));
@@ -122,7 +122,7 @@ function elyonpay_legacy_login_notice()
     }
     $url = admin_url('admin.php?page=wc-settings&tab=checkout&section=elyonpay');
     echo '<div class="notice notice-warning"><p><strong>ElyonPay :</strong> '
-        . esc_html__('la boutique se connecte encore avec l\'e-mail et le mot de passe du compte marchand. Renseignez la clé d\'API de votre tableau de bord ElyonPay.', 'elyonpay-for-woocommerce')
+        . esc_html__('la boutique se connecte encore avec l\'e-mail et le mot de passe du compte marchand. Si la validation en deux étapes (MFA) est activée sur ce compte, cette connexion ne marche plus et les paiements échouent. Renseignez la clé d\'API de votre tableau de bord ElyonPay.', 'elyonpay-for-woocommerce')
         . ' <a href="' . esc_url($url) . '">' . esc_html__('Paramètres ElyonPay', 'elyonpay-for-woocommerce') . '</a></p></div>';
 }
 
